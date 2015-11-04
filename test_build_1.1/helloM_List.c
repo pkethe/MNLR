@@ -1019,6 +1019,8 @@ int main(int argc, char **argv) {
 
 	boolean tierSpecial = false;
 
+	//system("sudo service ntp restart");
+
 	if (argc > 1) {
 
 		argc--;
@@ -1259,7 +1261,6 @@ int main(int argc, char **argv) {
 		ips[z].s_addr = ntohl(ips[z].s_addr);
 		ips[z].s_addr = ((ips[z].s_addr >> (32 - cidrs[z])) << (32 - cidrs[z]));
 		ips[z].s_addr = htonl(ips[z].s_addr);
-
 	}
 
 	// if only end node then advertise updates, i.e. put entrie TierAdd<->IPaddtable
@@ -1489,7 +1490,7 @@ void checkEntriesToAdvertise() {
                 // If new port we have to advertise our tierAdd<->IPAdd table.
                 uint8_t *mplrPayload = allocate_ustrmem (IP_MAXPACKET);
                 int mplrPayloadLen = 0;
-                mplrPayloadLen = buildPayload(mplrPayload, ONLY_NEW_ENTRIES, 0);
+                mplrPayloadLen = buildPayload(mplrPayload, ONLY_NEW_ENTRIES, (int)if_nametoindex(interfaceList[ifs]));
                 if (mplrPayloadLen) {
                         endNetworkSend(interfaceList[ifs], mplrPayload, mplrPayloadLen);
                 }
@@ -1571,6 +1572,7 @@ void checkForLinkFailures (struct addr_tuple *myAddr, int numTierAddr) {
                         }
                 }
         }
+
 }
 
 bool isInterfaceActive(struct in_addr ip, int cidr) {
@@ -1579,7 +1581,8 @@ bool isInterfaceActive(struct in_addr ip, int cidr) {
 
         if (getifaddrs(&ifaddr)) {
                 perror("Error: getifaddrs() Failed\n");
-                exit(0);
+                printf("Is Interface Active\n");
+		exit(0);
         }
 
         // loop through the list
@@ -1597,10 +1600,12 @@ bool isInterfaceActive(struct in_addr ip, int cidr) {
                         struct sockaddr_in *subnmask = ((struct sockaddr_in*) ifa->ifa_netmask);
 
                         if (ip.s_addr == (ipaddr->sin_addr.s_addr & subnmask->sin_addr.s_addr)) {
+				freeifaddrs(ifaddr);
                                 return true;
                         }
 
                 }
         }
+	freeifaddrs(ifaddr);
         return false;
 }
